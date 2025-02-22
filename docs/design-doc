@@ -1,0 +1,67 @@
+Feature Request System Design Requirements Technology Stack
+
+Frontend: Next.js 14+ (React 18+) 
+Backend: Next.js API routes 
+Authentication: NextAuth.js (email/password) 
+Database: MySQL
+ORM: Prisma 
+UI Components: Shadcn/Radix for accessibility 
+Form Validation: Zod
+
+User Authentication
+
+Self-service user registration Password requirements:
+
+Minimum 8 characters Must contain at least one capital letter Must contain at least one special character
+
+No email verification required Two role types: User and Admin
+
+Feature Request Creation
+
+Modal-based creation form Required fields:
+
+Title (max 100 characters) Description (max 500 characters)
+
+System-captured data:
+
+Creator's userID Creation timestamp Last edited timestamp (for future use) Status change timestamps
+
+Form validation using Zod Error handling:
+
+Specific error messages for validation failures Error display via popup modal Preserve form content on submission failure
+
+Feature Request Display
+
+Public landing page showing all non-deleted features Sorted by number of upvotes (descending) Pagination: 25 requests per page No search or additional sorting options
+
+Voting System
+
+Requires user authentication One vote per user per feature Toggle functionality:
+
+First click adds vote Second click removes vote
+
+Server-side validation to prevent multiple votes
+
+Feature Management
+
+Users can delete their own feature requests Admins can delete any feature request Soft deletion for 30 days, then hard deletion No editing capability (planned for future)
+
+Admin Dashboard
+
+Restricted to admin users Metrics display:
+
+Count of features by status Time duration in each status
+
+Status management (future feature):
+
+Status options: "planned", "completed", "in progress", "denied" Timestamp tracking for status changes
+
+Database Schema Considerations
+
+Include fields for future features:
+
+Status tracking Status change timestamps Last edited timestamp Soft deletion flags and timestamps
+
+Not Included in Initial Release
+
+Feature editing Categories/tags Comment system Search functionality Email verification Rate limiting Data export Additional sorting options Notifications Admin editing capabilities
