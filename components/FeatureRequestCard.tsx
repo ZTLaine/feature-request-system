@@ -3,8 +3,20 @@
 import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "./ui/button"
-import { ThumbsUp } from "lucide-react"
+import { ThumbsUp, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 type FeatureRequestProps = {
   id: string
@@ -13,7 +25,9 @@ type FeatureRequestProps = {
   status: "PENDING" | "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "DENIED"
   votes: number
   hasVoted: boolean
+  creatorId: string
   onVote: (id: string) => Promise<void>
+  onDelete: (id: string) => Promise<void>
 }
 
 export default function FeatureRequestCard({
@@ -23,10 +37,14 @@ export default function FeatureRequestCard({
   status,
   votes,
   hasVoted,
+  creatorId,
   onVote,
+  onDelete,
 }: FeatureRequestProps) {
   const { data: session } = useSession()
   const [isVoting, setIsVoting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const { toast } = useToast()
 
   const handleVote = async () => {
     if (!session) return
@@ -37,6 +55,23 @@ export default function FeatureRequestCard({
       setIsVoting(false)
     }
   }
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await onDelete(id)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete feature request",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const isCreator = session?.user?.id === creatorId
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -55,16 +90,44 @@ export default function FeatureRequestCard({
             {status.toLowerCase().replace("_", " ")}
           </span>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn("gap-2", hasVoted && "bg-primary text-primary-foreground")}
-          onClick={handleVote}
-          disabled={!session || isVoting}
-        >
-          <ThumbsUp className="h-4 w-4" />
-          <span>{votes}</span>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn("gap-2", hasVoted && "bg-primary text-primary-foreground")}
+            onClick={handleVote}
+            disabled={!session || isVoting}
+          >
+            <ThumbsUp className="h-4 w-4" />
+            <span>{votes}</span>
+          </Button>
+          {isCreator && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700"
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your feature request.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
     </div>
   )

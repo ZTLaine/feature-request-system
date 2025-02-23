@@ -16,6 +16,7 @@ import {
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
 import { useToast } from "@/hooks/use-toast"
+import { useFeatures } from "@/contexts/FeatureContext"
 
 const featureRequestSchema = z.object({
   title: z.string().min(1).max(100),
@@ -28,6 +29,7 @@ export default function CreateFeatureRequest() {
   const { data: session, status } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const { toast } = useToast()
+  const { refreshFeatures } = useFeatures()
   const {
     register,
     handleSubmit,
@@ -78,6 +80,7 @@ export default function CreateFeatureRequest() {
       })
       reset()
       setIsOpen(false)
+      refreshFeatures()
     } catch (error) {
       toast({
         title: "Error",
