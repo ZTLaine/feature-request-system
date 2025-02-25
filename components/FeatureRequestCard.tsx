@@ -17,6 +17,8 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { ArrowUp } from "lucide-react"
+import { Card } from "./ui/card"
 
 type FeatureRequestProps = {
   id: string
@@ -74,61 +76,47 @@ export default function FeatureRequestCard({
   const isCreator = session?.user?.id === creatorId
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold mb-2">{title}</h3>
-          <p className="text-gray-600 mb-4">{description}</p>
+    <Card className="p-6">
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-semibold mb-2 min-h-[40px] flex items-center break-words">{title}</h3>
+          <p className="text-gray-600 mb-4 break-words">{description}</p>
           <span className={cn(
-            "text-sm px-2 py-1 rounded-full",
+            "text-sm px-2 py-1 rounded-full whitespace-nowrap inline-flex items-center",
             status === "PENDING" && "bg-gray-100 text-gray-700",
             status === "PLANNED" && "bg-blue-100 text-blue-700",
             status === "IN_PROGRESS" && "bg-yellow-100 text-yellow-700",
             status === "COMPLETED" && "bg-green-100 text-green-700",
             status === "DENIED" && "bg-red-100 text-red-700"
           )}>
-            {status.toLowerCase().replace("_", " ")}
+            {status.toLowerCase().replace(/_/g, " ")}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            className={cn("gap-2", hasVoted && "bg-primary text-primary-foreground")}
-            onClick={handleVote}
-            disabled={!session || isVoting}
+            onClick={() => onVote(id)}
+            className={cn(
+              "h-10 px-4",
+              hasVoted && "bg-blue-50 text-blue-600 hover:bg-blue-100"
+            )}
           >
-            <ThumbsUp className="h-4 w-4" />
-            <span>{votes}</span>
+            <ArrowUp className="mr-1 h-4 w-4" />
+            {votes}
           </Button>
-          {isCreator && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700"
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your feature request.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          {session?.user?.id === creatorId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(id)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           )}
         </div>
       </div>
-    </div>
+    </Card>
   )
 }

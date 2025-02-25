@@ -24,12 +24,27 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { title, description } = featureRequestSchema.parse(body)
 
-    const feature = await prisma.feature.create({
-      data: {
-        title,
-        description,
-        creatorId: session.user.id,
-      },
+    // Use transaction to create both feature and initial status change
+    const feature = await prisma.$transaction(async (tx) => {
+      const newFeature = await tx.feature.create({
+        data: {
+          title,
+          description,
+          creatorId: session.user.id,
+          status: "PENDING", // Explicitly set initial status
+        },
+      })
+
+      // Create initial status change record
+      await tx.statusChange.create({
+        data: {
+          featureId: newFeature.id,
+          oldStatus: "PENDING",
+          newStatus: "PENDING",
+        },
+      })
+
+      return newFeature
     })
 
     return NextResponse.json(feature)

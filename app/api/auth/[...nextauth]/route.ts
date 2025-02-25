@@ -1,7 +1,7 @@
 import NextAuth, { AuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, UserRole } from "@prisma/client"
 import bcrypt from "bcryptjs"
 
 const prisma = new PrismaClient()
@@ -43,21 +43,28 @@ export const authOptions: AuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-        }
+          role: user.role,
+        } as any // Type assertion needed because NextAuth's User type doesn't include role
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        console.log('JWT Callback - User:', user)
         token.id = user.id
+        token.role = (user as any).role  // Keep the type assertion
       }
+      console.log('JWT Callback - Token:', token)
       return token
     },
     async session({ session, token }) {
       if (session.user) {
+        console.log('Session Callback - Token:', token)
         session.user.id = token.id as string
+        session.user.role = token.role as UserRole  // Keep the type assertion
       }
+      console.log('Session Callback - Session:', session)
       return session
     },
   },

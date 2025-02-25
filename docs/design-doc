@@ -14,7 +14,9 @@ Self-service user registration Password requirements:
 
 Minimum 8 characters Must contain at least one capital letter Must contain at least one special character
 
-No email verification required Two role types: User and Admin
+No email verification required 
+
+Two role types: User and Admin
 
 Feature Request Creation
 
