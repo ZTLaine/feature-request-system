@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import {
   Table,
   TableBody,
@@ -20,11 +21,30 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "./ui/badge"
+import { Loader2, ArrowLeft } from "lucide-react"
 
-type FeatureMetrics = {
+type StatusDistribution = {
   status: string
-  count: number
-  averageDuration: number
+  _count: number
+}
+
+type StatusChange = {
+  createdAt: string
+  _count: number
+}
+
+type PopularFeature = {
+  featureId: string
+  _count: number
+}
+
+type MetricsData = {
+  userCount: number
+  featureCount: number
+  voteCount: number
+  statusDistribution: StatusDistribution[]
+  statusChangesOverTime: StatusChange[]
+  popularFeatures: PopularFeature[]
 }
 
 type Feature = {
@@ -38,29 +58,61 @@ type Feature = {
 
 export default function AdminDashboard() {
   const { data: session } = useSession()
-  const [metrics, setMetrics] = useState<FeatureMetrics[]>([])
+  const router = useRouter()
+  const [metrics, setMetrics] = useState<MetricsData | null>(null)
   const [features, setFeatures] = useState<Feature[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Fetch metrics
-      const metricsResponse = await fetch("/api/admin/metrics")
-      if (metricsResponse.ok) {
-        const metricsData = await metricsResponse.json()
-        setMetrics(metricsData)
-      }
+    let isMounted = true
 
-      // Fetch features
-      const featuresResponse = await fetch("/api/admin/features")
-      if (featuresResponse.ok) {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        // Fetch metrics
+        const metricsResponse = await fetch("/api/admin/metrics")
+        if (!metricsResponse.ok) {
+          throw new Error("Failed to fetch metrics")
+        }
+        const metricsData = await metricsResponse.json()
+
+        // Fetch features
+        const featuresResponse = await fetch("/api/admin/features")
+        if (!featuresResponse.ok) {
+          throw new Error("Failed to fetch features")
+        }
         const featuresData = await featuresResponse.json()
-        setFeatures(featuresData)
+
+        if (isMounted) {
+          setMetrics(metricsData)
+          setFeatures(featuresData)
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "An error occurred")
+          toast({
+            title: "Error",
+            description: "Failed to fetch dashboard data",
+            variant: "destructive",
+          })
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
     }
 
     fetchData()
-  }, [])
+
+    return () => {
+      isMounted = false
+    }
+  }, [toast])
 
   const handleStatusChange = async (featureId: string, newStatus: string) => {
     try {
@@ -94,28 +146,65 @@ export default function AdminDashboard() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-red-500">{error}</div>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/")}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      </div>
       
       <div className="bg-white rounded-lg shadow p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Feature Request Metrics</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
+            <p className="text-2xl font-bold">{metrics?.userCount || 0}</p>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-500">Total Features</h3>
+            <p className="text-2xl font-bold">{metrics?.featureCount || 0}</p>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-500">Total Votes</h3>
+            <p className="text-2xl font-bold">{metrics?.voteCount || 0}</p>
+          </div>
+        </div>
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Status</TableHead>
               <TableHead>Count</TableHead>
-              <TableHead>Average Duration (days)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {metrics.map((metric) => (
-              <TableRow key={metric.status}>
-                <TableCell className="font-medium">{metric.status}</TableCell>
-                <TableCell>{metric.count}</TableCell>
-                <TableCell>
-                  {metric.averageDuration.toFixed(1)}
-                </TableCell>
+            {metrics?.statusDistribution.map((status) => (
+              <TableRow key={status.status}>
+                <TableCell className="font-medium">{status.status}</TableCell>
+                <TableCell>{status._count}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -135,48 +224,56 @@ export default function AdminDashboard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {features.map((feature) => (
-              <TableRow key={feature.id}>
-                <TableCell className="font-medium">{feature.title}</TableCell>
-                <TableCell className="text-center">
-                  <Badge 
-                    variant="outline" 
-                    className="capitalize whitespace-nowrap inline-flex items-center"
-                  >
-                    {feature.status.toLowerCase().replace(/_/g, " ")}
-                  </Badge>
-                </TableCell>
-                <TableCell>{feature.votes.length}</TableCell>
-                <TableCell>
-                  {new Date(feature.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Change Status
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Change Status</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        {["PENDING", "PLANNED", "IN_PROGRESS", "COMPLETED", "DENIED"].map((status) => (
-                          <Button
-                            key={status}
-                            variant={feature.status === status ? "default" : "outline"}
-                            onClick={() => handleStatusChange(feature.id, status)}
-                          >
-                            {status.toLowerCase().replace("_", " ")}
-                          </Button>
-                        ))}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+            {Array.isArray(features) && features.length > 0 ? (
+              features.map((feature) => (
+                <TableRow key={feature.id}>
+                  <TableCell className="font-medium">{feature.title}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge 
+                      variant="outline" 
+                      className="capitalize whitespace-nowrap inline-flex items-center"
+                    >
+                      {feature.status.toLowerCase().replace(/_/g, " ")}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{feature.votes.length}</TableCell>
+                  <TableCell>
+                    {new Date(feature.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          Change Status
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Change Status</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          {["PENDING", "PLANNED", "IN_PROGRESS", "COMPLETED", "DENIED"].map((status) => (
+                            <Button
+                              key={status}
+                              variant={feature.status === status ? "default" : "outline"}
+                              onClick={() => handleStatusChange(feature.id, status)}
+                            >
+                              {status.toLowerCase().replace("_", " ")}
+                            </Button>
+                          ))}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  No feature requests available
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>

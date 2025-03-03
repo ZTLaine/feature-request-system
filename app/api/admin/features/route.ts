@@ -9,8 +9,12 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (!session?.user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
     }
 
     const features = await prisma.feature.findMany({
