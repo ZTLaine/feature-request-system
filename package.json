@@ -1,5 +1,5 @@
 {
-  "name": "my-v0-project",
+  "name": "feature-request-system",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -68,7 +68,8 @@
     "typescript": "latest",
     "next-auth": "^4.24.11",
     "@auth/prisma-adapter": "^2.7.4",
-    "bcryptjs": "latest"
+    "bcryptjs": "latest",
+    "react-icons": "^4.11.0"  
   },
   "devDependencies": {
     "@types/node": "^22",
