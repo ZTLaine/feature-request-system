@@ -89,13 +89,36 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+    async signIn({ user, account, profile }) {
+      // If there's no email from the OAuth provider, we can't link accounts
+      if (!profile?.email) {
+        return true;
+      }
+
+      // If we have an account and it's a Google sign-in attempt
+      if (account?.provider === "google") {
+        // Check if we have an existing user with this email
+        const existingUser = await prisma.user.findUnique({
+          where: { email: profile.email },
+          include: { accounts: true },
+        });
+
+        // If there's a user with this email but no Google account linked
+        if (existingUser && !existingUser.accounts.some(acc => acc.provider === "google")) {
+          // Instead of using a dedicated page, add query parameters to the main page
+          // This will be handled by our client components
+          return `/?error=OAuthAccountNotLinked&email=${profile.email}`;
+        }
+      }
+
+      return true;
+    },
   },
   session: {
     strategy: "jwt",
   },
-  pages: {
-    signIn: "/auth/signin",
-  },
+  // Remove the pages configuration to use the default handling with query params
+  debug: process.env.NODE_ENV === "development",
 }
 
 const handler = NextAuth(authOptions)

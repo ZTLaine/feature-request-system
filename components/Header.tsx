@@ -1,24 +1,58 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import AuthModal from "./AuthModal"
-import { Button } from "./ui/button"
-import { Badge } from "./ui/badge"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import AuthModal from "@/components/AuthModal"
+import { useSearchParams, useRouter } from "next/navigation"
 
 export default function Header() {
-  const { data: session, update: updateSession } = useSession()
+  const { data: session, status } = useSession()
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const searchParams = useSearchParams()
   const router = useRouter()
   
-  console.log('Session data:', session)
+  // Check for OAuth errors
+  const error = searchParams.get("error")
+  const email = searchParams.get("email")
+  
+  // Show modal automatically when there's an OAuth error
+  useEffect(() => {
+    if (error === "OAuthAccountNotLinked" && email) {
+      setAuthModalOpen(true)
+      
+      // Clean up the URL - fixed the router.replace call
+      router.replace("/")
+    }
+  }, [error, email, router])
+
+  const handleSignOut = async () => {
+    await signOut({ redirect: false })
+  }
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+  }
 
   const toggleRole = async () => {
     try {
       const response = await fetch("/api/dev/toggle-role", {
         method: "POST",
       })
-      
       if (response.ok) {
         // Force a hard refresh of the session
         await signOut({ redirect: false }) // Sign out without redirecting
@@ -30,15 +64,16 @@ export default function Header() {
     } catch (error) {
       console.error("Failed to toggle role:", error)
     }
-  }
+  };
 
   return (
-    <header className="bg-white shadow-md">
+    <header className="bg-white shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <Link href="/" className="text-2xl font-bold text-primary">
+          Feature Requests
+        </Link>
+
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-2xl font-bold text-gray-800">
-            FeatureVote
-          </Link>
           {session?.user?.role === "ADMIN" && (
             <Link 
               href="/admin"
@@ -61,17 +96,58 @@ export default function Header() {
               </Button>
             </div>
           )}
-        </div>
-        <nav>
-          {session ? (
-            <Button variant="outline" onClick={() => signOut()}>
-              Sign Out
-            </Button>
+
+          {status === "authenticated" && session.user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar>
+                    {session.user.image ? (
+                      <AvatarImage src={session.user.image} alt={session.user.name || ""} />
+                    ) : (
+                      <AvatarFallback>
+                        {session.user.name ? getInitials(session.user.name) : "U"}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    {session.user.name && <p className="font-medium">{session.user.name}</p>}
+                    {session.user.email && (
+                      <p className="w-[200px] truncate text-sm text-muted-foreground">
+                        {session.user.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                {session.user.role === "ADMIN" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">Admin Dashboard</Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            <AuthModal />
+            <Button onClick={() => setAuthModalOpen(true)}>
+              Sign In
+            </Button>
           )}
-        </nav>
+        </div>
       </div>
+      
+      <AuthModal
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        defaultMode="signin"
+        linkEmail={email}
+      />
     </header>
   )
 }

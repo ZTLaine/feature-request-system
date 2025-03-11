@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -18,16 +18,29 @@ const signInSchema = z.object({
 
 type SignInFormValues = z.infer<typeof signInSchema>
 
-export default function SignInForm({ onSuccess }: { onSuccess: () => void }) {
+interface SignInFormProps {
+  onSuccess: () => void;
+  linkEmail?: string | null;
+}
+
+export default function SignInForm({ onSuccess, linkEmail }: SignInFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
   })
+
+  // If linkEmail is provided, pre-fill the email field
+  useEffect(() => {
+    if (linkEmail) {
+      setValue("email", linkEmail);
+    }
+  }, [linkEmail, setValue]);
 
   const onSubmit = async (data: SignInFormValues) => {
     setIsLoading(true)
@@ -43,7 +56,14 @@ export default function SignInForm({ onSuccess }: { onSuccess: () => void }) {
       if (result?.error) {
         setError("Invalid email or password")
       } else {
-        onSuccess()
+        // If we're in linking mode, we need to call a special endpoint to link accounts
+        if (linkEmail) {
+          // This would be a custom API call to link accounts
+          // For a basic implementation, we would just redirect to Google sign-in after successful credentials auth
+          await signIn("google", { callbackUrl: window.location.origin });
+        } else {
+          onSuccess()
+        }
       }
     } finally {
       setIsLoading(false)
@@ -78,26 +98,30 @@ export default function SignInForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Signing in..." : "Sign In"}
+          {linkEmail ? "Link Account & Sign In" : isLoading ? "Signing in..." : "Sign In"}
         </Button>
       </form>
       
-      <div className="flex items-center">
-        <Separator className="flex-1" />
-        <span className="px-3 text-xs text-muted-foreground">OR</span>
-        <Separator className="flex-1" />
-      </div>
-      
-      <Button 
-        type="button" 
-        variant="outline" 
-        className="w-full" 
-        onClick={handleGoogleSignIn}
-        disabled={isLoading}
-      >
-        <FcGoogle className="mr-2 h-5 w-5" />
-        Sign in with Google
-      </Button>
+      {!linkEmail && (
+        <>
+          <div className="flex items-center">
+            <Separator className="flex-1" />
+            <span className="px-3 text-xs text-muted-foreground">OR</span>
+            <Separator className="flex-1" />
+          </div>
+          
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full" 
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+          >
+            <FcGoogle className="mr-2 h-5 w-5" />
+            Sign in with Google
+          </Button>
+        </>
+      )}
     </div>
   )
 }

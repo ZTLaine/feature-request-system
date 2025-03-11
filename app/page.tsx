@@ -1,14 +1,11 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "./api/auth/[...nextauth]/route"
+"use client"
+
 import Header from "@/components/Header"
 import CreateFeatureRequest from "@/components/CreateFeatureRequest"
 import FeatureRequestList from "@/components/FeatureRequestList"
 import { Toaster } from "@/components/ui/toaster"
 
-export default async function Home() {
-  // We can remove this since we're using the client component
-  // const session = await getServerSession(authOptions)
-
+export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-200">
       <Header />
