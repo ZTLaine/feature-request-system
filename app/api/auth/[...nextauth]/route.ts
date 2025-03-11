@@ -92,25 +92,56 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       // If there's no email from the OAuth provider, we can't link accounts
       if (!profile?.email) {
+        console.log("No email provided by OAuth provider");
         return true;
       }
 
       // If we have an account and it's a Google sign-in attempt
       if (account?.provider === "google") {
+        console.log(`Google sign-in attempt for email: ${profile.email}`);
+        
         // Check if we have an existing user with this email
         const existingUser = await prisma.user.findUnique({
           where: { email: profile.email },
           include: { accounts: true },
         });
 
+        console.log("Existing user found:", existingUser?.id);
+        console.log("Existing linked accounts:", existingUser?.accounts.length);
+        
+        // Double-check if the user already has a linked account for this provider
+        const hasExistingProviderAccount = existingUser?.accounts.some(
+          acc => acc.provider === account.provider && acc.providerAccountId === account.providerAccountId
+        );
+        
+        if (hasExistingProviderAccount) {
+          console.log("User already has this provider account linked");
+          return true;
+        }
+
         // If there's a user with this email but no Google account linked
         if (existingUser && !existingUser.accounts.some(acc => acc.provider === "google")) {
-          // Instead of using a dedicated page, add query parameters to the main page
-          // This will be handled by our client components
-          return `/?error=OAuthAccountNotLinked&email=${profile.email}`;
+          console.log("Need to link Google account to existing user");
+          
+          // Encode the OAuth account information for the client to use
+          const oauthInfo = {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            access_token: account.access_token,
+            refresh_token: account.refresh_token,
+            id_token: account.id_token,
+            expires_at: account.expires_at,
+          };
+          
+          // Base64 encode the OAuth info to safely pass it in the URL
+          const encodedOAuthInfo = Buffer.from(JSON.stringify(oauthInfo)).toString('base64');
+          
+          // Return URL with necessary params for the client to handle account linking
+          return `/?error=OAuthAccountNotLinked&email=${profile.email}&oauthInfo=${encodedOAuthInfo}`;
         }
       }
 
+      console.log("Sign-in successful, no linking needed");
       return true;
     },
   },

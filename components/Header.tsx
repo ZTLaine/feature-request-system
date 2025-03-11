@@ -28,13 +28,52 @@ export default function Header() {
   
   // Show modal automatically when there's an OAuth error
   useEffect(() => {
-    if (error === "OAuthAccountNotLinked" && email) {
-      setAuthModalOpen(true)
-      
-      // Clean up the URL - fixed the router.replace call
-      router.replace("/")
+    // Check for OAuth account linking parameters in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    const emailParam = urlParams.get('email');
+    const oauthInfoParam = urlParams.get('oauthInfo');
+    
+    // Log for debugging
+    if (errorParam === "OAuthAccountNotLinked") {
+      console.log("OAuth account linking needed for email:", emailParam);
     }
-  }, [error, email, router])
+    
+    if (errorParam === "OAuthAccountNotLinked" && emailParam) {
+      if (oauthInfoParam) {
+        try {
+          // Decode the base64 OAuth information
+          const decodedInfo = atob(oauthInfoParam);
+          console.log("Storing OAuth info for account linking");
+          
+          // Store it in sessionStorage for the SignInForm to use
+          sessionStorage.setItem('pendingLinkOAuthInfo', decodedInfo);
+        } catch (err) {
+          console.error("Failed to decode OAuth information", err);
+        }
+      } else {
+        console.warn("No OAuth info provided for account linking");
+      }
+
+      // Open the auth modal in link-account mode
+      setAuthModalOpen(true);
+      
+      // Clean up the URL by removing the query parameters
+      // This prevents the modal from reopening if the user refreshes the page
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, [error, email])
+
+  // Log session details whenever they change
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      console.log("Authenticated session:", { 
+        user: session.user,
+        email: session.user.email 
+      });
+    }
+  }, [session, status]);
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })

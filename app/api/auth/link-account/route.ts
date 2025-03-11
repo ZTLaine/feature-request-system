@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log("Token from authenticated user:", token);
     const { provider, providerAccountId, accessToken, refreshToken, idToken } = await req.json();
+    console.log("Received account linking request:", { provider, providerAccountId });
 
     // Validate required fields
     if (!provider || !providerAccountId) {
@@ -28,6 +30,33 @@ export async function POST(req: NextRequest) {
         { error: "Missing required provider information" },
         { status: 400 }
       );
+    }
+
+    // Check if account already exists
+    const existingAccount = await prisma.account.findFirst({
+      where: {
+        provider,
+        providerAccountId,
+      }
+    });
+
+    if (existingAccount) {
+      console.log("Account already exists:", existingAccount);
+      
+      // If the account exists but belongs to another user, handle accordingly
+      if (existingAccount.userId !== token.id) {
+        return NextResponse.json(
+          { error: "This provider account is already linked to another user" },
+          { status: 409 }
+        );
+      }
+      
+      // If it's already linked to this user, just return success
+      return NextResponse.json({
+        success: true,
+        message: "Account already linked to this user",
+        provider
+      });
     }
 
     // Link the account to the user
@@ -40,9 +69,13 @@ export async function POST(req: NextRequest) {
         access_token: accessToken,
         refresh_token: refreshToken,
         id_token: idToken,
-        // Add any other fields required by your OAuth provider
+        // Add other required fields
+        scope: "",
+        token_type: "",
       },
     });
+
+    console.log("Created linked account:", linkedAccount);
 
     return NextResponse.json({
       success: true,
@@ -52,7 +85,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error linking account:", error);
     return NextResponse.json(
-      { error: "Failed to link account" },
+      { error: "Failed to link account", details: (error as Error).message },
       { status: 500 }
     );
   }

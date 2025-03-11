@@ -56,11 +56,57 @@ export default function SignInForm({ onSuccess, linkEmail }: SignInFormProps) {
       if (result?.error) {
         setError("Invalid email or password")
       } else {
-        // If we're in linking mode, we need to call a special endpoint to link accounts
+        // If we're in linking mode, we need to call the link-account API
         if (linkEmail) {
-          // This would be a custom API call to link accounts
-          // For a basic implementation, we would just redirect to Google sign-in after successful credentials auth
-          await signIn("google", { callbackUrl: window.location.origin });
+          try {
+            // Get OAuth information from localStorage or sessionStorage
+            const oauthInfo = sessionStorage.getItem('pendingLinkOAuthInfo')
+            
+            if (!oauthInfo) {
+              setError("OAuth information is missing. Please try again.")
+              return
+            }
+            
+            const oauthData = JSON.parse(oauthInfo)
+            console.log("Linking account with OAuth data:", JSON.stringify(oauthData, null, 2))
+            
+            // Call our API to link the accounts
+            const linkResponse = await fetch('/api/auth/link-account', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                provider: oauthData.provider,
+                providerAccountId: oauthData.providerAccountId,
+                accessToken: oauthData.access_token,
+                refreshToken: oauthData.refresh_token,
+                idToken: oauthData.id_token,
+              }),
+            })
+            
+            // Log response for debugging
+            const responseData = await linkResponse.json()
+            console.log("Link account response:", responseData)
+            
+            if (!linkResponse.ok) {
+              throw new Error(responseData.error || 'Failed to link account')
+            }
+            
+            // Clear the stored OAuth info
+            sessionStorage.removeItem('pendingLinkOAuthInfo')
+            
+            // Success! Accounts are now linked
+            onSuccess()
+            
+            // Force a refresh after a short delay to ensure NextAuth session is updated
+            setTimeout(() => {
+              window.location.reload()
+            }, 500)
+          } catch (err) {
+            console.error('Error linking accounts:', err)
+            setError("Failed to link account. Please try again.")
+          }
         } else {
           onSuccess()
         }
