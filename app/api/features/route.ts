@@ -4,6 +4,9 @@ import { PrismaClient } from "@prisma/client"
 import * as z from "zod"
 import { authOptions } from "../auth/[...nextauth]/route"
 
+// Add export const dynamic to prevent static generation error
+export const dynamic = 'force-dynamic'
+
 const prisma = new PrismaClient()
 
 const featureRequestSchema = z.object({
@@ -62,10 +65,24 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
+    // Check session to determine if user can see features
+    // and to check if they've voted on any features
+    const session = await getServerSession(authOptions)
+    
+    // Get all non-deleted features
     const features = await prisma.feature.findMany({
-      where: { isDeleted: false },
+      where: {
+        isDeleted: false,
+      },
       include: {
         votes: true,
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
       },
       orderBy: {
         votes: {
@@ -76,8 +93,9 @@ export async function GET() {
 
     return NextResponse.json(features)
   } catch (error) {
+    console.error("Error fetching features:", error)
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: "Failed to fetch features" },
       { status: 500 }
     )
   }

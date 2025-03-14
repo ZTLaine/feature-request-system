@@ -1,56 +1,47 @@
-import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../../auth/[...nextauth]/route"
+import { NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
+import { authOptions } from "../../auth/[...nextauth]/route"
 
+// Add export const dynamic to prevent static generation error
+export const dynamic = 'force-dynamic'
+
+// Development-only route to toggle the user's role between USER and ADMIN
+// This is for testing purposes only
 const prisma = new PrismaClient()
 
-export async function POST() {
-  // Only allow in development mode
-  if (process.env.NODE_ENV !== "development") {
-    return NextResponse.json(
-      { error: "This endpoint is only available in development mode" },
-      { status: 403 }
-    )
-  }
-
+export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "You must be signed in to toggle roles" },
-        { status: 401 }
-      )
+    // Only allow in development
+    if (process.env.NODE_ENV !== "development") {
+      return NextResponse.json({ message: "Not allowed in production" }, { status: 403 })
     }
-
-    // Get current user and role
+    
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user) {
+      return NextResponse.json({ message: "Not authenticated" }, { status: 401 })
+    }
+    
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
     })
-
+    
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      )
+      return NextResponse.json({ message: "User not found" }, { status: 404 })
     }
-
-    // Toggle role
-    const newRole = user.role === "ADMIN" ? "USER" : "ADMIN"
-
-    // Update user role in database
+    
+    // Toggle the role
+    const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN'
+    
     await prisma.user.update({
       where: { id: user.id },
       data: { role: newRole },
     })
-
-    return NextResponse.json({ success: true, newRole })
+    
+    return NextResponse.json({ message: `Role updated to ${newRole}` })
   } catch (error) {
-    console.error("Error toggling role:", error)
-    return NextResponse.json(
-      { error: "Failed to toggle role" },
-      { status: 500 }
-    )
+    console.error("Toggle role error:", error)
+    return NextResponse.json({ message: "Failed to toggle role" }, { status: 500 })
   }
 } 

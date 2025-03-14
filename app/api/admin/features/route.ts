@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth"
 import { PrismaClient } from "@prisma/client"
 import { authOptions } from "../../auth/[...nextauth]/route"
 
+// Add export const dynamic to prevent static generation error
+export const dynamic = 'force-dynamic'
+
 const prisma = new PrismaClient()
 
 export async function GET() {

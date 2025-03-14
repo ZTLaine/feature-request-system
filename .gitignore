@@ -18,6 +18,7 @@ yarn-error.log*
 
 # env files
 .env*
+!.env.*.example
 
 # vercel
 .vercel
@@ -28,5 +29,9 @@ next-env.d.ts
 
 # coverage
 /coverage/
+
+# Docker and database
+fix-mysql-permissions.sql
+docker-compose.override.yml
 
 .cursorrules

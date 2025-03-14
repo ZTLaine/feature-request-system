@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth"
 import { PrismaClient } from "@prisma/client"
 import { authOptions } from "../../auth/[...nextauth]/route"
 
+// Add export const dynamic to prevent static generation error
+export const dynamic = 'force-dynamic'
+
 const prisma = new PrismaClient()
 
 export async function DELETE(
@@ -11,7 +14,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
@@ -23,9 +26,9 @@ export async function DELETE(
       return NextResponse.json({ message: "Feature not found" }, { status: 404 })
     }
 
-    // Check if user is creator
-    if (feature.creatorId !== session.user.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 403 })
+    // Check if user is the creator or an admin
+    if (feature.creatorId !== session.user.id && session.user.role !== "ADMIN") {
+      return NextResponse.json({ message: "Forbidden: You can only delete your own features" }, { status: 403 })
     }
 
     // Soft delete
@@ -39,7 +42,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: "Feature request deleted" })
   } catch (error) {
-    console.error("Delete feature error:", error)
+    console.error("Error deleting feature:", error)
     return NextResponse.json(
       { message: "Failed to delete feature" },
       { status: 500 }
@@ -53,57 +56,57 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const featureId = params.featureId
-    const userId = session.user.id
-
+    const { featureId } = params
+    
     // Check if feature exists
     const feature = await prisma.feature.findUnique({
       where: { id: featureId },
     })
-
+    
     if (!feature) {
-      return NextResponse.json({ message: "Feature not found" }, { status: 404 })
+      return NextResponse.json(
+        { message: "Feature not found" },
+        { status: 404 }
+      )
     }
-
-    // Check if vote exists
+    
+    // Check if user has already voted
     const existingVote = await prisma.vote.findUnique({
       where: {
         userId_featureId: {
-          userId,
+          userId: session.user.id,
           featureId,
         },
       },
     })
-
+    
     if (existingVote) {
-      // Remove vote if it exists
+      // Remove vote if it already exists (toggle behavior)
       await prisma.vote.delete({
         where: {
-          userId_featureId: {
-            userId,
-            featureId,
-          },
+          id: existingVote.id,
         },
       })
-    } else {
-      // Create vote if it doesn't exist
-      await prisma.vote.create({
-        data: {
-          userId,
-          featureId,
-        },
-      })
+      return NextResponse.json({ message: "Vote removed" })
     }
-
-    return NextResponse.json({ message: "Vote updated successfully" })
+    
+    // Create new vote
+    await prisma.vote.create({
+      data: {
+        userId: session.user.id,
+        featureId,
+      },
+    })
+    
+    return NextResponse.json({ message: "Vote added" })
   } catch (error) {
-    console.error("Vote error:", error)
+    console.error("Error voting on feature:", error)
     return NextResponse.json(
-      { message: "Failed to update vote" },
+      { message: "Failed to vote on feature" },
       { status: 500 }
     )
   }

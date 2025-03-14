@@ -21,6 +21,8 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  // Enable standalone output mode for Docker deployment
+  output: 'standalone',
 }
 
 mergeConfig(nextConfig, userConfig)

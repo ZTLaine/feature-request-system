@@ -4,11 +4,14 @@ import Header from "@/components/Header"
 import CreateFeatureRequest from "@/components/CreateFeatureRequest"
 import FeatureRequestList from "@/components/FeatureRequestList"
 import { Toaster } from "@/components/ui/toaster"
+import { Suspense } from "react"
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-200">
-      <Header />
+      <Suspense fallback={<div className="h-16 bg-white shadow-sm"></div>}>
+        <Header />
+      </Suspense>
       <div className="container mx-auto px-4 py-16">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Feature Request System</h1>
