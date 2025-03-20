@@ -35,3 +35,4 @@ fix-mysql-permissions.sql
 docker-compose.override.yml
 
 .cursorrules
+/aws-deploy/

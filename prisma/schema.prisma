@@ -7,71 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          UserRole    @default(USER)
-  features      Feature[]   // User's created features
-  votes         Vote[]      // User's votes on features
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-}
-
-enum UserRole {
-  USER
-  ADMIN
-}
-
-model Feature {
-  id          String        @id @default(cuid())
-  title       String        @db.VarChar(100)
-  description String        @db.VarChar(500)
-  status      FeatureStatus @default(PENDING)
-  creator     User          @relation(fields: [creatorId], references: [id])
-  creatorId   String
-  votes       Vote[]
-  isDeleted   Boolean       @default(false)
-  deletedAt   DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  statusHistory StatusChange[]
-}
-
-enum FeatureStatus {
-  PENDING
-  PLANNED
-  IN_PROGRESS
-  COMPLETED
-  DENIED
-}
-
-model Vote {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  feature   Feature  @relation(fields: [featureId], references: [id])
-  featureId String
-  createdAt DateTime @default(now())
-
-  @@unique([userId, featureId]) // Ensures one vote per user per feature
-}
-
-model StatusChange {
-  id         String        @id @default(cuid())
-  feature    Feature       @relation(fields: [featureId], references: [id])
-  featureId  String
-  oldStatus  FeatureStatus
-  newStatus  FeatureStatus
-  createdAt  DateTime      @default(now())
-}
-
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id
   userId            String
   type              String
   provider          String
@@ -83,10 +20,92 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
 
+model Feature {
+  id           String         @id
+  title        String         @db.VarChar(100)
+  description  String         @db.VarChar(500)
+  status       Feature_status @default(PENDING)
+  creatorId    String
+  isDeleted    Boolean        @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  User         User           @relation(fields: [creatorId], references: [id])
+  StatusChange StatusChange[]
+  Vote         Vote[]
+
+  @@index([creatorId], map: "Feature_creatorId_fkey")
+}
+
+model StatusChange {
+  id        String                 @id
+  featureId String
+  oldStatus StatusChange_oldStatus
+  newStatus StatusChange_newStatus
+  createdAt DateTime               @default(now())
+  Feature   Feature                @relation(fields: [featureId], references: [id])
+
+  @@index([featureId], map: "StatusChange_featureId_fkey")
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          User_role @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  Account       Account[]
+  Feature       Feature[]
+  Vote          Vote[]
+}
+
+model Vote {
+  id        String   @id
+  userId    String
+  featureId String
+  createdAt DateTime @default(now())
+  Feature   Feature  @relation(fields: [featureId], references: [id])
+  User      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, featureId])
+  @@index([featureId], map: "Vote_featureId_fkey")
+}
+
+enum StatusChange_oldStatus {
+  PENDING
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  DENIED
+}
+
+enum StatusChange_newStatus {
+  PENDING
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  DENIED
+}
+
+enum Feature_status {
+  PENDING
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  DENIED
+}
+
+enum User_role {
+  USER
+  ADMIN
+}
