@@ -10,7 +10,7 @@ env:
   ECR_REPOSITORY: feature-request-system
   ECS_CLUSTER: feature-request-cluster
   ECS_SERVICE: feature-request-service
-  ECS_TASK_FAMILY: feature-request-task
+  ECS_TASK_FAMILY: feature-request-system-task
 
 jobs:
   deploy:
@@ -61,9 +61,96 @@ jobs:
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
       
       - name: Download current task definition
+        id: get-task-def
+        continue-on-error: true
         run: |
           aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_FAMILY }} \
           --query 'taskDefinition' > task-definition.json
+          echo "exists=true" >> $GITHUB_OUTPUT
+      
+      - name: Create new task definition if none exists
+        if: steps.get-task-def.outputs.exists != 'true'
+        run: |
+          echo "Creating new task definition..."
+          EXECUTION_ROLE_ARN=$(aws iam list-roles --query "Roles[?RoleName=='ecsTaskExecutionRole'].Arn" --output text)
+          if [ -z "$EXECUTION_ROLE_ARN" ]; then
+            echo "Error: ecsTaskExecutionRole not found. Check your IAM roles."
+            exit 1
+          fi
+          
+          SECRET_ARN=$(aws secretsmanager list-secrets --query "SecretList[?contains(Name, 'feature-request')].ARN" --output text)
+          if [ -z "$SECRET_ARN" ]; then
+            echo "Warning: No secrets found matching 'feature-request'. Task will be created without secrets."
+          fi
+          
+          ECR_REPOSITORY_URI="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+          
+          cat > task-definition.json << EOF
+          {
+            "family": "${{ env.ECS_TASK_FAMILY }}",
+            "networkMode": "awsvpc",
+            "executionRoleArn": "$EXECUTION_ROLE_ARN",
+            "taskRoleArn": "$EXECUTION_ROLE_ARN",
+            "containerDefinitions": [
+              {
+                "name": "feature-request-container",
+                "image": "${{ steps.build-image.outputs.image }}",
+                "essential": true,
+                "portMappings": [
+                  {
+                    "containerPort": 3000,
+                    "hostPort": 3000,
+                    "protocol": "tcp"
+                  }
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/feature-request-logs",
+                    "awslogs-region": "${{ env.AWS_REGION }}",
+                    "awslogs-stream-prefix": "ecs"
+                  }
+                }
+              }
+            ],
+            "requiresCompatibilities": [
+              "FARGATE"
+            ],
+            "cpu": "256",
+            "memory": "512"
+          }
+          EOF
+          
+          if [ ! -z "$SECRET_ARN" ]; then
+            # Add secrets to the task definition
+            TMP_FILE=$(mktemp)
+            jq ".containerDefinitions[0].secrets = [
+              {
+                \"name\": \"DATABASE_URL\",
+                \"valueFrom\": \"$SECRET_ARN:DATABASE_URL::\"
+              },
+              {
+                \"name\": \"NEXTAUTH_SECRET\",
+                \"valueFrom\": \"$SECRET_ARN:NEXTAUTH_SECRET::\"
+              },
+              {
+                \"name\": \"NEXTAUTH_URL\",
+                \"valueFrom\": \"$SECRET_ARN:NEXTAUTH_URL::\"
+              },
+              {
+                \"name\": \"GOOGLE_CLIENT_ID\",
+                \"valueFrom\": \"$SECRET_ARN:GOOGLE_CLIENT_ID::\"
+              },
+              {
+                \"name\": \"GOOGLE_CLIENT_SECRET\",
+                \"valueFrom\": \"$SECRET_ARN:GOOGLE_CLIENT_SECRET::\"
+              }
+            ]" task-definition.json > "$TMP_FILE"
+            mv "$TMP_FILE" task-definition.json
+          fi
+          
+          # Create Cloudwatch logs group if it doesn't exist
+          aws logs create-log-group --log-group-name /ecs/feature-request-logs || echo "Log group already exists"
       
       - name: Update ECS task definition with new image
         id: task-def
