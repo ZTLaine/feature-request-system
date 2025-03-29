@@ -36,9 +36,9 @@ model Feature {
   deletedAt    DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime
-  User         User           @relation(fields: [creatorId], references: [id])
-  StatusChange StatusChange[]
-  Vote         Vote[]
+  creator      User           @relation(fields: [creatorId], references: [id])
+  statusChanges StatusChange[]
+  votes        Vote[]
 
   @@index([creatorId], map: "Feature_creatorId_fkey")
 }
