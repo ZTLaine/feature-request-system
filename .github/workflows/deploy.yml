@@ -8,8 +8,8 @@ on:
 env:
   AWS_REGION: us-west-2
   ECR_REPOSITORY: feature-request-system
-  ECS_CLUSTER: feature-request-cluster
-  ECS_SERVICE: feature-request-service
+  ECS_CLUSTER: feature-request-system-cluster
+  ECS_SERVICE: feature-request-system-service
   ECS_TASK_FAMILY: feature-request-system-task
 
 jobs:
@@ -157,7 +157,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: task-definition.json
-          container-name: feature-request-container
+          container-name: feature-request-system-container
           image: ${{ steps.build-image.outputs.image }}
       
       - name: Deploy to Amazon ECS
