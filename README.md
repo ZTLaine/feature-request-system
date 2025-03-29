@@ -72,3 +72,31 @@ For security reasons, all `.env*` files are ignored in git (via .gitignore). Whe
 1. Copy `.env.docker.example` to `.env.docker`
 2. Update with your actual credentials
 3. NEVER commit your actual `.env` files with real credentials
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment to AWS ECS.
+
+### CI/CD Workflow
+
+The CI/CD pipeline automatically:
+1. Builds the Docker image
+2. Pushes it to Amazon ECR (Elastic Container Registry)
+3. Updates the ECS task definition
+4. Deploys the application to Amazon ECS (Elastic Container Service)
+
+### Configuration
+
+The workflow is configured to trigger on:
+- Pushes to the `main` branch
+- Manual triggers through the GitHub Actions interface
+
+### Setting Up CI/CD
+
+1. Ensure you have the required GitHub secrets configured:
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+
+2. These credentials should belong to an IAM user with appropriate permissions for ECR and ECS operations.
+
+For more detailed information about the CI/CD setup, see [.github/workflows/README.md](.github/workflows/README.md).
