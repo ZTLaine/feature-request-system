@@ -1,0 +1,6 @@
+aws_region = "us-west-2"
+domain_name = "example.com"
+db_password = "your-db-password"
+nextauth_secret = "your-nextauth-secret"
+google_client_id = "your-google-client-id"
+google_client_secret = "your-google-client-secret" 

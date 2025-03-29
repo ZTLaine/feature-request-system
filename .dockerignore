@@ -19,6 +19,15 @@ coverage
 *.swp
 *.swo
 
+# Infrastructure
+terraform/
+*.tf
+*.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+
 # Misc
 .git
 .gitignore
