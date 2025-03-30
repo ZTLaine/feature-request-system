@@ -11,6 +11,7 @@ env:
   ECS_CLUSTER: feature-request-system-cluster
   ECS_SERVICE: feature-request-system-service
   ECS_TASK_FAMILY: feature-request-system-task
+  SECRET_NAME: NEXTAUTH_SECRET
 
 jobs:
   deploy:
@@ -62,95 +63,52 @@ jobs:
       
       - name: Download current task definition
         id: get-task-def
-        continue-on-error: true
         run: |
+          # We'll always try to download the existing task definition
           aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_FAMILY }} \
           --query 'taskDefinition' > task-definition.json
-          echo "exists=true" >> $GITHUB_OUTPUT
+          
+          # Make sure the file exists even if the previous command failed
+          if [ ! -f "task-definition.json" ]; then
+            echo "Error: Could not retrieve existing task definition. Ensure it exists in ECS."
+            exit 1
+          fi
       
-      - name: Create new task definition if none exists
-        if: steps.get-task-def.outputs.exists != 'true'
+      - name: Get Secret ARN
+        id: get-secret
         run: |
-          echo "Creating new task definition..."
-          EXECUTION_ROLE_ARN=$(aws iam list-roles --query "Roles[?RoleName=='ecsTaskExecutionRole'].Arn" --output text)
-          if [ -z "$EXECUTION_ROLE_ARN" ]; then
-            echo "Error: ecsTaskExecutionRole not found. Check your IAM roles."
+          # Get the ARN of the secret
+          SECRET_ARN=$(aws secretsmanager describe-secret --secret-id ${{ env.SECRET_NAME }} --query 'ARN' --output text) || true
+          
+          if [ -z "$SECRET_ARN" ]; then
+            echo "Warning: Could not find secret with name ${{ env.SECRET_NAME }}. Make sure it exists."
             exit 1
           fi
           
-          SECRET_ARN=$(aws secretsmanager list-secrets --query "SecretList[?contains(Name, 'feature-request')].ARN" --output text)
-          if [ -z "$SECRET_ARN" ]; then
-            echo "Warning: No secrets found matching 'feature-request'. Task will be created without secrets."
+          echo "arn=$SECRET_ARN" >> $GITHUB_OUTPUT
+      
+      - name: Update task definition with secrets
+        run: |
+          # Create a temporary file for the updated task definition
+          SECRET_ARN="${{ steps.get-secret.outputs.arn }}"
+          
+          # Check if secrets configuration already exists
+          if jq -e '.containerDefinitions[0].secrets' task-definition.json > /dev/null; then
+            echo "Secret configuration already exists. Making sure NEXTAUTH_SECRET is included..."
+            
+            # Check if NEXTAUTH_SECRET is already configured
+            if ! jq -e '.containerDefinitions[0].secrets[] | select(.name == "NEXTAUTH_SECRET")' task-definition.json > /dev/null; then
+              echo "Adding NEXTAUTH_SECRET to existing secrets configuration..."
+              jq --arg ARN "$SECRET_ARN" '.containerDefinitions[0].secrets += [{"name": "NEXTAUTH_SECRET", "valueFrom": $ARN + ":NEXTAUTH_SECRET::"}]' task-definition.json > task-definition-updated.json
+              mv task-definition-updated.json task-definition.json
+            else
+              echo "NEXTAUTH_SECRET already exists in the task definition."
+            fi
+          else
+            echo "No secrets configuration found. Creating one with NEXTAUTH_SECRET..."
+            jq --arg ARN "$SECRET_ARN" '.containerDefinitions[0].secrets = [{"name": "NEXTAUTH_SECRET", "valueFrom": $ARN + ":NEXTAUTH_SECRET::"}]' task-definition.json > task-definition-updated.json
+            mv task-definition-updated.json task-definition.json
           fi
-          
-          ECR_REPOSITORY_URI="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
-          
-          cat > task-definition.json << EOF
-          {
-            "family": "${{ env.ECS_TASK_FAMILY }}",
-            "networkMode": "awsvpc",
-            "executionRoleArn": "$EXECUTION_ROLE_ARN",
-            "taskRoleArn": "$EXECUTION_ROLE_ARN",
-            "containerDefinitions": [
-              {
-                "name": "feature-request-container",
-                "image": "${{ steps.build-image.outputs.image }}",
-                "essential": true,
-                "portMappings": [
-                  {
-                    "containerPort": 3000,
-                    "hostPort": 3000,
-                    "protocol": "tcp"
-                  }
-                ],
-                "logConfiguration": {
-                  "logDriver": "awslogs",
-                  "options": {
-                    "awslogs-group": "/ecs/feature-request-logs",
-                    "awslogs-region": "${{ env.AWS_REGION }}",
-                    "awslogs-stream-prefix": "ecs"
-                  }
-                }
-              }
-            ],
-            "requiresCompatibilities": [
-              "FARGATE"
-            ],
-            "cpu": "256",
-            "memory": "512"
-          }
-          EOF
-          
-          if [ ! -z "$SECRET_ARN" ]; then
-            # Add secrets to the task definition
-            TMP_FILE=$(mktemp)
-            jq ".containerDefinitions[0].secrets = [
-              {
-                \"name\": \"DATABASE_URL\",
-                \"valueFrom\": \"$SECRET_ARN:DATABASE_URL::\"
-              },
-              {
-                \"name\": \"NEXTAUTH_SECRET\",
-                \"valueFrom\": \"$SECRET_ARN:NEXTAUTH_SECRET::\"
-              },
-              {
-                \"name\": \"NEXTAUTH_URL\",
-                \"valueFrom\": \"$SECRET_ARN:NEXTAUTH_URL::\"
-              },
-              {
-                \"name\": \"GOOGLE_CLIENT_ID\",
-                \"valueFrom\": \"$SECRET_ARN:GOOGLE_CLIENT_ID::\"
-              },
-              {
-                \"name\": \"GOOGLE_CLIENT_SECRET\",
-                \"valueFrom\": \"$SECRET_ARN:GOOGLE_CLIENT_SECRET::\"
-              }
-            ]" task-definition.json > "$TMP_FILE"
-            mv "$TMP_FILE" task-definition.json
-          fi
-          
-          # Create Cloudwatch logs group if it doesn't exist
-          aws logs create-log-group --log-group-name /ecs/feature-request-logs || echo "Log group already exists"
       
       - name: Update ECS task definition with new image
         id: task-def
