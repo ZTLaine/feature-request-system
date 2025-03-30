@@ -99,14 +99,14 @@ jobs:
             # Check if NEXTAUTH_SECRET is already configured
             if ! jq -e '.containerDefinitions[0].secrets[] | select(.name == "NEXTAUTH_SECRET")' task-definition.json > /dev/null; then
               echo "Adding NEXTAUTH_SECRET to existing secrets configuration..."
-              jq --arg ARN "$SECRET_ARN" '.containerDefinitions[0].secrets += [{"name": "NEXTAUTH_SECRET", "valueFrom": $ARN + ":NEXTAUTH_SECRET::"}]' task-definition.json > task-definition-updated.json
+              jq --arg ARN "$SECRET_ARN" '.containerDefinitions[0].secrets += [{"name": "NEXTAUTH_SECRET", "valueFrom": ($ARN + ":NEXTAUTH_SECRET::")}]' task-definition.json > task-definition-updated.json
               mv task-definition-updated.json task-definition.json
             else
               echo "NEXTAUTH_SECRET already exists in the task definition."
             fi
           else
             echo "No secrets configuration found. Creating one with NEXTAUTH_SECRET..."
-            jq --arg ARN "$SECRET_ARN" '.containerDefinitions[0].secrets = [{"name": "NEXTAUTH_SECRET", "valueFrom": $ARN + ":NEXTAUTH_SECRET::"}]' task-definition.json > task-definition-updated.json
+            jq --arg ARN "$SECRET_ARN" '.containerDefinitions[0].secrets = [{"name": "NEXTAUTH_SECRET", "valueFrom": ($ARN + ":NEXTAUTH_SECRET::")}]' task-definition.json > task-definition-updated.json
             mv task-definition-updated.json task-definition.json
           fi
       
