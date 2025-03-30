@@ -45,7 +45,8 @@ jobs:
       - name: Generate Prisma Client
         run: |
           npm ci
-          npx prisma generate
+          # Regenerate Prisma client to ensure it matches the schema
+          npx prisma generate --schema=prisma/schema.prisma
       
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
@@ -53,6 +54,11 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          # Modify Dockerfile to run migration on startup if needed
+          if ! grep -q "npx prisma migrate deploy" Dockerfile; then
+            sed -i '/CMD \["node", "server.js"\]/i RUN echo "#!/bin/sh\\nnpx prisma migrate deploy\\nexec \$@" > /app/entrypoint.sh\\nRUN chmod +x /app/entrypoint.sh\\nENTRYPOINT ["/app/entrypoint.sh"]' Dockerfile
+          fi
+          
           # Build a docker container and push it to ECR
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG

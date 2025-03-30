@@ -38,7 +38,7 @@ model Feature {
   updatedAt    DateTime
   creator      User           @relation(fields: [creatorId], references: [id])
   statusChanges StatusChange[]
-  votes        Vote[]
+  Vote         Vote[]
 
   @@index([creatorId], map: "Feature_creatorId_fkey")
 }

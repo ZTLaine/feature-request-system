@@ -25,14 +25,23 @@ export async function GET() {
         isDeleted: false,
       },
       include: {
-        votes: true,
+        Vote: true,
       },
       orderBy: {
         createdAt: 'desc',
       },
     })
 
-    return NextResponse.json(features)
+    // Transform the response to maintain compatibility with frontend
+    const transformedFeatures = features.map(feature => {
+      // Create a new object with all the original properties
+      const transformedFeature = { ...feature };
+      // Add the votes property for frontend compatibility
+      transformedFeature.votes = feature.Vote;
+      return transformedFeature;
+    });
+
+    return NextResponse.json(transformedFeatures)
   } catch (error) {
     console.error("Admin features error:", error)
     return NextResponse.json(

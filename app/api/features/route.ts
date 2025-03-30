@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { PrismaClient } from "@prisma/client"
 import * as z from "zod"
 import { authOptions } from "../auth/[...nextauth]/route"
+import crypto from "crypto"
 
 // Add export const dynamic to prevent static generation error
 export const dynamic = 'force-dynamic'
@@ -27,20 +28,27 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { title, description } = featureRequestSchema.parse(body)
 
+    // Use crypto or a similar function to generate IDs
+    const featureId = crypto.randomUUID();
+    const now = new Date();
+
     // Use transaction to create both feature and initial status change
     const feature = await prisma.$transaction(async (tx) => {
       const newFeature = await tx.feature.create({
         data: {
+          id: featureId,
           title,
           description,
           creatorId: session.user.id,
           status: "PENDING", // Explicitly set initial status
+          updatedAt: now,
         },
       })
 
       // Create initial status change record
       await tx.statusChange.create({
         data: {
+          id: crypto.randomUUID(),
           featureId: newFeature.id,
           oldStatus: "PENDING",
           newStatus: "PENDING",
@@ -75,7 +83,7 @@ export async function GET() {
         isDeleted: false,
       },
       include: {
-        votes: true,
+        Vote: true,
         creator: {
           select: {
             id: true,
@@ -85,13 +93,22 @@ export async function GET() {
         },
       },
       orderBy: {
-        votes: {
+        Vote: {
           _count: "desc",
         },
       },
     })
 
-    return NextResponse.json(features)
+    // Transform the response to maintain compatibility with frontend
+    const transformedFeatures = features.map(feature => {
+      // Create a new object with all the original properties
+      const transformedFeature = { ...feature };
+      // Add the votes property for frontend compatibility
+      transformedFeature.votes = feature.Vote;
+      return transformedFeature;
+    });
+
+    return NextResponse.json(transformedFeatures)
   } catch (error) {
     console.error("Error fetching features:", error)
     return NextResponse.json(
