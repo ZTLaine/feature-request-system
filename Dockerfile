@@ -36,6 +36,7 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 
 ENV NODE_ENV=production
+ENV HOST=0.0.0.0
 # Uncomment the following line to disable telemetry at runtime
 # ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -54,11 +55,22 @@ COPY --from=base --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=base /app/prisma ./prisma
 COPY --from=base /app/node_modules/.prisma ./node_modules/.prisma
 
+# Create entrypoint script
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'echo "DATABASE_URL: $DATABASE_URL"' >> /app/entrypoint.sh && \
+    echo 'npx prisma migrate deploy' >> /app/entrypoint.sh && \
+    echo 'exec "$@"' >> /app/entrypoint.sh
+
+# Make entrypoint script executable
+RUN chmod +x /app/entrypoint.sh
+RUN chown nextjs:nodejs /app/entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
 
 ENV PORT=3000
 
-# Command to run the application
+# Set entrypoint and command
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["node", "server.js"] 
