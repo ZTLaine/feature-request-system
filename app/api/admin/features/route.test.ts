@@ -121,7 +121,7 @@ describe("Admin Features API", () => {
       expect(responseData).toEqual(mockFeatures);
       expect(mockPrismaClient.feature.findMany).toHaveBeenCalledWith({
         where: { isDeleted: false },
-        include: { votes: true },
+        include: { Vote: true },
         orderBy: { createdAt: "desc" },
       });
       expect(getServerSession).toHaveBeenCalled();

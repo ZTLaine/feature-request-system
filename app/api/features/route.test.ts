@@ -260,10 +260,10 @@ describe("Features API", () => {
       expect(mockPrismaClient.feature.findMany).toHaveBeenCalledWith({
         where: { isDeleted: false },
         include: {
-          votes: true,
+          Vote: true,
         },
         orderBy: {
-          votes: {
+          Vote: {
             _count: "desc",
           },
         },
