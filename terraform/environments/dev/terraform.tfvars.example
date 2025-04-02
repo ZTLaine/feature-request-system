@@ -1,5 +1,5 @@
 aws_region = "us-west-2"
-domain_name = "example.com"
+domain_name = "example.com" # NEXTAUTH_URL will be automatically set to https://example.com
 db_password = "your-db-password"
 nextauth_secret = "your-nextauth-secret"
 google_client_id = "your-google-client-id"

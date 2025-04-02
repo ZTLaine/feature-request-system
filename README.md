@@ -96,6 +96,7 @@ The workflow is configured to trigger on:
 1. Ensure you have the required GitHub secrets configured:
    - `AWS_ACCESS_KEY_ID`
    - `AWS_SECRET_ACCESS_KEY`
+   - `NEXTAUTH_SECRET` - **Important**: This must be the exact same secret used during local development to prevent JWT decryption errors
 
 2. These credentials should belong to an IAM user with appropriate permissions for ECR and ECS operations.
 

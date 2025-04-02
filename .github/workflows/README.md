@@ -8,6 +8,10 @@ The following secrets need to be configured in your GitHub repository:
 
 1. `AWS_ACCESS_KEY_ID`: Your AWS IAM user's access key ID
 2. `AWS_SECRET_ACCESS_KEY`: Your AWS IAM user's secret access key
+3. `NEXTAUTH_SECRET`: Your NextAuth.js secret key for JWT token encryption/decryption
+   - **IMPORTANT**: This must match the NEXTAUTH_SECRET used in development/other environments
+   - If this value differs between environments, users will experience "decryption operation failed" errors
+   - Generate a strong secret using a command like `openssl rand -base64 32`
 
 ## Setting Up GitHub Secrets
 
