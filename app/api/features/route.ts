@@ -101,10 +101,11 @@ export async function GET() {
 
     // Transform the response to maintain compatibility with frontend
     const transformedFeatures = features.map(feature => {
-      // Create a new object with all the original properties
-      const transformedFeature = { ...feature };
-      // Add the votes property for frontend compatibility
-      transformedFeature.votes = feature.Vote;
+      const { Vote, ...rest } = feature;
+      const transformedFeature = { 
+        ...rest, 
+        votes: Vote 
+      };
       return transformedFeature;
     });
 
