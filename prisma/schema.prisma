@@ -9,76 +9,82 @@ datasource db {
 
 model Account {
   id                String  @id
-  userId            String
+  userId            String  @map("user_id")
   type              String
   provider          String
-  providerAccountId String
+  providerAccountId String  @map("provider_account_id")
   refresh_token     String? @db.Text
   access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
+  expires_at        Int?    @map("expires_at")
+  token_type        String? @map("token_type")
   scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id_token          String? @db.Text @map("id_token")
+  session_state     String? @map("session_state")
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
+  @@map("account")
 }
 
 model Feature {
-  id           String         @id
-  title        String         @db.VarChar(100)
-  description  String         @db.VarChar(500)
-  status       Feature_status @default(PENDING)
-  creatorId    String
-  isDeleted    Boolean        @default(false)
-  deletedAt    DateTime?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime
-  creator      User           @relation(fields: [creatorId], references: [id])
-  statusChanges StatusChange[]
-  Vote         Vote[]
+  id            String         @id
+  title         String         @db.VarChar(100)
+  description   String         @db.VarChar(500)
+  status        Feature_status @default(PENDING)
+  creatorId     String         @map("creator_id")
+  isDeleted     Boolean        @default(false) @map("is_deleted")
+  deletedAt     DateTime?      @map("deleted_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @map("updated_at")
+  creator       User           @relation(fields: [creatorId], references: [id])
+  statusChanges StatusChange[] @relation("FeatureToStatusChange")
+  votes         Vote[]         @relation("FeatureToVote")
 
-  @@index([creatorId], map: "Feature_creatorId_fkey")
+  @@index([creatorId], map: "feature_creator_id_fkey")
+  @@map("feature")
 }
 
 model StatusChange {
   id        String                 @id
-  featureId String
-  oldStatus StatusChange_oldStatus
-  newStatus StatusChange_newStatus
-  createdAt DateTime               @default(now())
-  Feature   Feature                @relation(fields: [featureId], references: [id])
+  featureId String                 @map("feature_id")
+  oldStatus StatusChange_oldStatus @map("old_status")
+  newStatus StatusChange_newStatus @map("new_status")
+  createdAt DateTime               @default(now()) @map("created_at")
+  feature   Feature                @relation("FeatureToStatusChange", fields: [featureId], references: [id])
 
-  @@index([featureId], map: "StatusChange_featureId_fkey")
+  @@index([featureId], map: "status_change_feature_id_fkey")
+  @@map("status_change")
 }
 
 model User {
   id            String    @id
   name          String
   email         String    @unique
-  emailVerified DateTime?
+  emailVerified DateTime? @map("email_verified")
   image         String?
   password      String?
   role          User_role @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime
-  Account       Account[]
-  Feature       Feature[]
-  Vote          Vote[]
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @map("updated_at")
+  accounts      Account[]
+  features      Feature[]
+  votes         Vote[]    @relation("UserToVote")
+
+  @@map("user")
 }
 
 model Vote {
   id        String   @id
-  userId    String
-  featureId String
-  createdAt DateTime @default(now())
-  Feature   Feature  @relation(fields: [featureId], references: [id])
-  User      User     @relation(fields: [userId], references: [id])
+  userId    String   @map("user_id")
+  featureId String   @map("feature_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  feature   Feature  @relation("FeatureToVote", fields: [featureId], references: [id])
+  user      User     @relation("UserToVote", fields: [userId], references: [id])
 
   @@unique([userId, featureId])
-  @@index([featureId], map: "Vote_featureId_fkey")
+  @@index([featureId], map: "vote_feature_id_fkey")
+  @@map("vote")
 }
 
 enum StatusChange_oldStatus {
