@@ -25,7 +25,14 @@ export async function GET() {
         isDeleted: false,
       },
       include: {
-        Vote: true,
+        votes: true,
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -34,10 +41,10 @@ export async function GET() {
 
     // Transform the response to maintain compatibility with frontend
     const transformedFeatures = features.map(feature => {
-      const { Vote, ...rest } = feature;
+      const { votes, ...rest } = feature;
       const transformedFeature = { 
         ...rest, 
-        votes: Vote 
+        votes: votes 
       };
       return transformedFeature;
     });

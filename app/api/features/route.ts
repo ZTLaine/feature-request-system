@@ -83,7 +83,7 @@ export async function GET() {
         isDeleted: false,
       },
       include: {
-        Vote: true,
+        votes: true,
         creator: {
           select: {
             id: true,
@@ -93,23 +93,15 @@ export async function GET() {
         },
       },
       orderBy: {
-        Vote: {
+        votes: {
           _count: "desc",
         },
       },
     })
 
     // Transform the response to maintain compatibility with frontend
-    const transformedFeatures = features.map(feature => {
-      const { Vote, ...rest } = feature;
-      const transformedFeature = { 
-        ...rest, 
-        votes: Vote 
-      };
-      return transformedFeature;
-    });
-
-    return NextResponse.json(transformedFeatures)
+    // This is no longer needed as we're using 'votes' directly
+    return NextResponse.json(features)
   } catch (error) {
     console.error("Error fetching features:", error)
     return NextResponse.json(
