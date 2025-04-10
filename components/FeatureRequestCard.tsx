@@ -1,35 +1,21 @@
 "use client"
 
-import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "./ui/button"
-import { ThumbsUp, Trash2 } from "lucide-react"
+import { ArrowUp, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "./ui/alert-dialog"
-import { useToast } from "@/hooks/use-toast"
-import { ArrowUp } from "lucide-react"
 import { Card } from "./ui/card"
 
 type FeatureRequestProps = {
-  id: string
-  title: string
-  description: string
-  status: "PENDING" | "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "DENIED"
-  votes: number
-  hasVoted: boolean
-  creatorId: string
-  onVote: (id: string) => Promise<void>
-  onDelete: (id: string) => Promise<void>
+  readonly id: string
+  readonly title: string
+  readonly description: string
+  readonly status: "PENDING" | "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "DENIED"
+  readonly votes: number
+  readonly hasVoted: boolean
+  readonly creatorId: string
+  readonly onVote: (id: string) => Promise<void>
+  readonly onDelete: (id: string) => Promise<void>
 }
 
 export default function FeatureRequestCard({
@@ -44,36 +30,6 @@ export default function FeatureRequestCard({
   onDelete,
 }: FeatureRequestProps) {
   const { data: session } = useSession()
-  const [isVoting, setIsVoting] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const { toast } = useToast()
-
-  const handleVote = async () => {
-    if (!session) return
-    setIsVoting(true)
-    try {
-      await onVote(id)
-    } finally {
-      setIsVoting(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    setIsDeleting(true)
-    try {
-      await onDelete(id)
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete feature request",
-        variant: "destructive",
-      })
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  const isCreator = session?.user?.id === creatorId
 
   return (
     <Card className="p-6">

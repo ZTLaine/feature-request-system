@@ -19,7 +19,11 @@ const signUpSchema = z.object({
 
 type SignUpFormValues = z.infer<typeof signUpSchema>
 
-export default function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
+type SignUpFormProps = {
+  readonly onSuccess: () => void
+}
+
+export default function SignUpForm({ onSuccess }: SignUpFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const {

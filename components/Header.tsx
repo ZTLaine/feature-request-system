@@ -14,13 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import AuthModal from "@/components/AuthModal"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 
 export default function Header() {
   const { data: session, status } = useSession()
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const searchParams = useSearchParams()
-  const router = useRouter()
   
   // Check for OAuth errors
   const error = searchParams.get("error")

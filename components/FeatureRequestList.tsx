@@ -82,36 +82,48 @@ export default function FeatureRequestList() {
     }
   }
 
-  return (
-    <>
-      {isLoading ? (
+  const renderContent = () => {
+    if (isLoading) {
+      return (
         <div className="flex justify-center items-center min-h-[200px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
-      ) : features.length === 0 ? (
+      )
+    }
+    
+    if (features.length === 0) {
+      return (
         <div className="text-center text-gray-500 py-8">
           No feature requests yet. Be the first to submit one!
         </div>
-      ) : (
-        <div className="flex flex-col gap-4 max-w-3xl mx-auto">
-          {features.map((feature) => (
-            <FeatureRequestCard
-              key={feature.id}
-              id={feature.id}
-              title={feature.title}
-              description={feature.description}
-              status={feature.status}
-              votes={feature.votes.length}
-              hasVoted={feature.votes.some(
-                (vote) => vote.userId === session?.user?.id
-              )}
-              creatorId={feature.creatorId}
-              onVote={handleVote}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
-      )}
+      )
+    }
+    
+    return (
+      <div className="flex flex-col gap-4 max-w-3xl mx-auto">
+        {features.map((feature) => (
+          <FeatureRequestCard
+            key={feature.id}
+            id={feature.id}
+            title={feature.title}
+            description={feature.description}
+            status={feature.status}
+            votes={feature.votes.length}
+            hasVoted={feature.votes.some(
+              (vote) => vote.userId === session?.user?.id
+            )}
+            creatorId={feature.creatorId}
+            onVote={handleVote}
+            onDelete={handleDelete}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {renderContent()}
     </>
   )
 }

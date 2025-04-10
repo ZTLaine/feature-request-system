@@ -97,6 +97,7 @@ export async function POST(
     // Create new vote
     await prisma.vote.create({
       data: {
+        id: crypto.randomUUID(),
         userId: session.user.id,
         featureId,
       },

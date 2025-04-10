@@ -11,13 +11,22 @@ const prisma = new PrismaClient()
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
-    if (!session?.user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      )
     }
 
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    })
+
+    if (!user || user.role !== "ADMIN") {
+      return NextResponse.json(
+        { message: "Forbidden" },
+        { status: 403 }
+      )
     }
 
     const features = await prisma.feature.findMany({
@@ -35,23 +44,13 @@ export async function GET() {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     })
 
-    // Transform the response to maintain compatibility with frontend
-    const transformedFeatures = features.map(feature => {
-      const { votes, ...rest } = feature;
-      const transformedFeature = { 
-        ...rest, 
-        votes: votes 
-      };
-      return transformedFeature;
-    });
-
-    return NextResponse.json(transformedFeatures)
+    return NextResponse.json(features)
   } catch (error) {
-    console.error("Admin features error:", error)
+    console.error("Error fetching features:", error)
     return NextResponse.json(
       { message: "Failed to fetch features" },
       { status: 500 }

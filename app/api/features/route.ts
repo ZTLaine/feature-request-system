@@ -25,6 +25,18 @@ export async function POST(req: Request) {
       )
     }
 
+    // Verify user exists in database
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { message: "User not found" },
+        { status: 404 }
+      )
+    }
+
     const body = await req.json()
     const { title, description } = featureRequestSchema.parse(body)
 
@@ -39,7 +51,7 @@ export async function POST(req: Request) {
           id: featureId,
           title,
           description,
-          creatorId: session.user.id,
+          creatorId: user.id,
           status: "PENDING", // Explicitly set initial status
           updatedAt: now,
         },
@@ -73,11 +85,6 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
-    // Check session to determine if user can see features
-    // and to check if they've voted on any features
-    const session = await getServerSession(authOptions)
-    
-    // Get all non-deleted features
     const features = await prisma.feature.findMany({
       where: {
         isDeleted: false,
@@ -93,14 +100,10 @@ export async function GET() {
         },
       },
       orderBy: {
-        votes: {
-          _count: "desc",
-        },
+        createdAt: "desc",
       },
     })
 
-    // Transform the response to maintain compatibility with frontend
-    // This is no longer needed as we're using 'votes' directly
     return NextResponse.json(features)
   } catch (error) {
     console.error("Error fetching features:", error)

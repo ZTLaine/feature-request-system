@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import * as z from "zod"
+import crypto from "crypto"
 
 const prisma = new PrismaClient()
 
@@ -25,12 +26,17 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
+    const userId = crypto.randomUUID()
+    const now = new Date()
 
     const user = await prisma.user.create({
       data: {
+        id: userId,
         name,
         email,
         password: hashedPassword,
+        createdAt: now,
+        updatedAt: now,
       },
     })
 
@@ -42,6 +48,7 @@ export async function POST(req: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ message: "Invalid input", errors: error.errors }, { status: 400 })
     }
+    console.error("Signup error:", error)
     return NextResponse.json({ message: "An error occurred during sign up" }, { status: 500 })
   }
 }

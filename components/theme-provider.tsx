@@ -6,6 +6,8 @@ import {
   type ThemeProviderProps,
 } from 'next-themes'
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+type ReadonlyThemeProviderProps = Readonly<ThemeProviderProps>
+
+export function ThemeProvider({ children, ...props }: ReadonlyThemeProviderProps) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>
 }
