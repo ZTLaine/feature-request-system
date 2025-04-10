@@ -53,7 +53,7 @@ type Feature = {
   description: string
   status: "PENDING" | "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "DENIED"
   createdAt: string
-  votes: { userId: string }[]
+  vote: { userId: string }[]
 }
 
 export default function AdminDashboard() {
@@ -236,7 +236,7 @@ export default function AdminDashboard() {
                       {feature.status.toLowerCase().replace(/_/g, " ")}
                     </Badge>
                   </TableCell>
-                  <TableCell>{feature.votes.length}</TableCell>
+                  <TableCell>{feature.vote.length}</TableCell>
                   <TableCell>
                     {new Date(feature.createdAt).toLocaleDateString()}
                   </TableCell>

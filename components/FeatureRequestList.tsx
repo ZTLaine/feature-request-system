@@ -11,7 +11,7 @@ type Feature = {
   title: string
   description: string
   status: "PENDING" | "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "DENIED"
-  votes: { userId: string }[]
+  vote: { userId: string }[]
   creatorId: string
 }
 
@@ -108,8 +108,8 @@ export default function FeatureRequestList() {
             title={feature.title}
             description={feature.description}
             status={feature.status}
-            votes={feature.votes.length}
-            hasVoted={feature.votes.some(
+            vote={feature.vote.length}
+            hasVoted={feature.vote.some(
               (vote) => vote.userId === session?.user?.id
             )}
             creatorId={feature.creatorId}

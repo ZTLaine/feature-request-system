@@ -34,7 +34,7 @@ export async function GET() {
         isDeleted: false,
       },
       include: {
-        votes: true,
+        vote: true,
         creator: {
           select: {
             id: true,

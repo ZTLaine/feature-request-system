@@ -95,7 +95,7 @@ describe("Admin Features API", () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           isDeleted: false,
-          votes: [{ id: "vote_1", userId: "user_2" }],
+          vote: [{ id: "vote_1", userId: "user_2" }],
         },
         {
           id: "feature_2",
@@ -106,7 +106,7 @@ describe("Admin Features API", () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           isDeleted: false,
-          votes: [],
+          vote: [],
         },
       ];
       

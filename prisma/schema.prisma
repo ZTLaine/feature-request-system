@@ -39,7 +39,7 @@ model Feature {
   updatedAt     DateTime       @map("updated_at")
   creator       User           @relation(fields: [creatorId], references: [id])
   statusChanges StatusChange[] @relation("FeatureToStatusChange")
-  votes         Vote[]         @relation("FeatureToVote")
+  vote         Vote[]         @relation("FeatureToVote")
 
   @@index([creatorId], map: "feature_creator_id_fkey")
   @@map("feature")
@@ -69,7 +69,7 @@ model User {
   updatedAt     DateTime  @map("updated_at")
   accounts      Account[]
   features      Feature[]
-  votes         Vote[]    @relation("UserToVote")
+  vote        Vote[]    @relation("UserToVote")
 
   @@map("user")
 }

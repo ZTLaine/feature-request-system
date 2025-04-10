@@ -11,7 +11,7 @@ type FeatureRequestProps = {
   readonly title: string
   readonly description: string
   readonly status: "PENDING" | "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "DENIED"
-  readonly votes: number
+  readonly vote: number
   readonly hasVoted: boolean
   readonly creatorId: string
   readonly onVote: (id: string) => Promise<void>
@@ -23,7 +23,7 @@ export default function FeatureRequestCard({
   title,
   description,
   status,
-  votes,
+  vote,
   hasVoted,
   creatorId,
   onVote,
@@ -59,7 +59,7 @@ export default function FeatureRequestCard({
             )}
           >
             <ArrowUp className="mr-1 h-4 w-4" />
-            {votes}
+            {vote}
           </Button>
           {session?.user?.id === creatorId && (
             <Button
