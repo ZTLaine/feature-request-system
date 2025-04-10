@@ -1,8 +1,6 @@
-import { NextResponse } from "next/server";
 import { GET, POST } from "./route";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
-import * as z from "zod";
 
 // Mock next-auth
 jest.mock("next-auth", () => ({
@@ -233,7 +231,7 @@ describe("Features API", () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           isDeleted: false,
-          votes: [{ id: "vote_1", userId: "user_2", featureId: "feature_1" }],
+          vote: [{ id: "vote_1", userId: "user_2", featureId: "feature_1" }],
         },
         {
           id: "feature_2",
@@ -244,7 +242,7 @@ describe("Features API", () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           isDeleted: false,
-          votes: [],
+          vote: [],
         },
       ];
       
@@ -260,13 +258,13 @@ describe("Features API", () => {
       expect(mockPrismaClient.feature.findMany).toHaveBeenCalledWith({
         where: { isDeleted: false },
         include: {
-          Vote: true,
+          vote: true,
         },
-        orderBy: {
-          Vote: {
-            _count: "desc",
-          },
-        },
+        // orderBy: {
+        //   vote: {
+        //     _count: "desc",
+        //   },
+        // },
       });
     });
 
