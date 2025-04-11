@@ -93,7 +93,7 @@ jobs:
           
           echo "arn=$SECRET_ARN" >> $GITHUB_OUTPUT
       
-      - name: Update task definition with secrets
+      - name: Update task definition with secrets and health check
         run: |
           # Create a temporary file for the updated task definition
           SECRET_ARN="${{ steps.get-secret.outputs.arn }}"
@@ -123,6 +123,17 @@ jobs:
             jq --arg ARN "$SECRET_ARN" '.containerDefinitions[0].secrets = [{"name": "NEXTAUTH_SECRET", "valueFrom": $ARN}]' task-definition.json > task-definition-updated.json
             mv task-definition-updated.json task-definition.json
           fi
+
+          # Add health check configuration
+          echo "Adding health check configuration..."
+          jq '.containerDefinitions[0].healthCheck = {
+            "command": ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"],
+            "interval": 30,
+            "timeout": 10,
+            "retries": 3,
+            "startPeriod": 90
+          }' task-definition.json > task-definition-updated.json
+          mv task-definition-updated.json task-definition.json
       
       - name: Update ECS task definition with new image
         id: task-def

@@ -33,7 +33,7 @@ FROM node:18-alpine AS runner
 WORKDIR /app
 
 # Install production dependencies only
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat curl
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
@@ -57,8 +57,13 @@ COPY --from=base /app/node_modules/.prisma ./node_modules/.prisma
 
 # Create entrypoint script
 RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
-    echo 'echo "DATABASE_URL: $DATABASE_URL"' >> /app/entrypoint.sh && \
+    echo 'echo "Checking environment variables..."' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$DATABASE_URL" ]; then echo "Error: DATABASE_URL is not set" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$NEXTAUTH_SECRET" ]; then echo "Error: NEXTAUTH_SECRET is not set" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$NEXTAUTH_URL" ]; then echo "Error: NEXTAUTH_URL is not set" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'echo "Running database migrations..."' >> /app/entrypoint.sh && \
     echo 'npx prisma migrate deploy' >> /app/entrypoint.sh && \
+    echo 'echo "Starting application..."' >> /app/entrypoint.sh && \
     echo 'exec "$@"' >> /app/entrypoint.sh
 
 # Make entrypoint script executable
