@@ -113,8 +113,8 @@ resource "aws_ecs_task_definition" "main" {
   family                   = "${var.project_name}-task"
   network_mode            = "bridge"
   requires_compatibilities = ["EC2"]
-  cpu                     = 256
-  memory                  = 256
+  cpu                     = 512
+  memory                  = 1024
   execution_role_arn      = aws_iam_role.ecs_execution_role.arn
   task_role_arn           = aws_iam_role.ecs_task_role.arn
 
@@ -125,7 +125,7 @@ resource "aws_ecs_task_definition" "main" {
       portMappings = [
         {
           containerPort = 3000
-          hostPort     = 0
+          hostPort     = 3000
           protocol     = "tcp"
         }
       ]
@@ -152,7 +152,7 @@ resource "aws_ecs_task_definition" "main" {
         },
         {
           name  = "NODE_OPTIONS"
-          value = "--max-old-space-size=192"
+          value = "--max-old-space-size=768"
         }
       ]
       logConfiguration = {
@@ -163,6 +163,15 @@ resource "aws_ecs_task_definition" "main" {
           "awslogs-stream-prefix" = "ecs"
         }
       }
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+        interval    = 30
+        timeout     = 10
+        retries     = 3
+        startPeriod = 90
+      }
+      memory = 1024
+      memoryReservation = 768
     }
   ])
 
