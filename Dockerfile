@@ -57,13 +57,17 @@ COPY --from=base /app/node_modules/.prisma ./node_modules/.prisma
 
 # Create entrypoint script
 RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
-    echo 'echo "Checking environment variables..."' >> /app/entrypoint.sh && \
-    echo 'if [ -z "$DATABASE_URL" ]; then echo "Error: DATABASE_URL is not set" && exit 1; fi' >> /app/entrypoint.sh && \
-    echo 'if [ -z "$NEXTAUTH_SECRET" ]; then echo "Error: NEXTAUTH_SECRET is not set" && exit 1; fi' >> /app/entrypoint.sh && \
-    echo 'if [ -z "$NEXTAUTH_URL" ]; then echo "Error: NEXTAUTH_URL is not set" && exit 1; fi' >> /app/entrypoint.sh && \
-    echo 'echo "Running database migrations..."' >> /app/entrypoint.sh && \
+    echo 'echo "[$(date)] Starting container initialization..."' >> /app/entrypoint.sh && \
+    echo 'echo "[$(date)] Checking environment variables..."' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$DATABASE_URL" ]; then echo "[$(date)] Error: DATABASE_URL is not set" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$NEXTAUTH_SECRET" ]; then echo "[$(date)] Error: NEXTAUTH_SECRET is not set" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$NEXTAUTH_URL" ]; then echo "[$(date)] Error: NEXTAUTH_URL is not set" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'echo "[$(date)] Environment variables check passed"' >> /app/entrypoint.sh && \
+    echo 'echo "[$(date)] Running database migrations..."' >> /app/entrypoint.sh && \
     echo 'npx prisma migrate deploy' >> /app/entrypoint.sh && \
-    echo 'echo "Starting application..."' >> /app/entrypoint.sh && \
+    echo 'if [ $? -ne 0 ]; then echo "[$(date)] Error: Database migration failed" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'echo "[$(date)] Database migrations completed successfully"' >> /app/entrypoint.sh && \
+    echo 'echo "[$(date)] Starting application..."' >> /app/entrypoint.sh && \
     echo 'exec "$@"' >> /app/entrypoint.sh
 
 # Make entrypoint script executable

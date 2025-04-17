@@ -36,7 +36,6 @@ module "ecs" {
 
   project_name         = local.project_name
   aws_region          = var.aws_region
-  ecr_repository_url  = module.ecr.repository_url
   public_subnet_ids   = module.vpc.public_subnet_ids
   ecs_security_group_id = module.vpc.ecs_security_group_id
   target_group_arn    = module.alb.target_group_arn
@@ -45,6 +44,11 @@ module "ecs" {
   nextauth_url        = "https://${var.domain_name}"
   google_client_id    = var.google_client_id
   google_client_secret = var.google_client_secret
+  container_image     = "${module.ecr.repository_url}:latest"
+  app_name           = local.project_name
+  vpc_id             = module.vpc.vpc_id
+  private_subnets    = module.vpc.private_subnet_ids
+  alb_security_group_id = module.alb.security_group_id
 }
 
 module "route53" {

@@ -8,11 +8,6 @@ variable "aws_region" {
   type        = string
 }
 
-variable "ecr_repository_url" {
-  description = "URL of the ECR repository"
-  type        = string
-}
-
 variable "public_subnet_ids" {
   description = "IDs of the public subnets"
   type        = list(string)
@@ -55,4 +50,35 @@ variable "google_client_secret" {
   description = "Google OAuth client secret"
   type        = string
   sensitive   = true
+}
+
+variable "app_name" {
+  description = "Name of the application"
+  type        = string
+}
+
+variable "container_image" {
+  description = "Container image to use for the application"
+  type        = string
+}
+
+variable "desired_count" {
+  description = "Number of instances of the task to run"
+  type        = number
+  default     = 1
+}
+
+variable "vpc_id" {
+  description = "ID of the VPC"
+  type        = string
+}
+
+variable "private_subnets" {
+  description = "List of private subnet IDs"
+  type        = list(string)
+}
+
+variable "alb_security_group_id" {
+  description = "Security group ID of the ALB"
+  type        = string
 } 

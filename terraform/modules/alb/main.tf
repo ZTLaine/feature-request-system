@@ -48,26 +48,22 @@ resource "aws_lb_listener" "https" {
 }
 
 resource "aws_lb_target_group" "main" {
-  name        = "${var.project_name}-tg-${random_id.suffix.dec}"
+  name        = "${var.project_name}-tg-${random_id.suffix.hex}"
   port        = 3000
   protocol    = "HTTP"
-  target_type = "instance"
   vpc_id      = var.vpc_id
+  target_type = "instance"
 
   health_check {
     enabled             = true
     healthy_threshold   = 2
     interval            = 30
     matcher            = "200"
-    path               = "/"
+    path               = "/api/health"
     port               = "traffic-port"
     protocol           = "HTTP"
     timeout            = 5
-    unhealthy_threshold = 2
-  }
-
-  lifecycle {
-    create_before_destroy = true
+    unhealthy_threshold = 3
   }
 
   tags = {

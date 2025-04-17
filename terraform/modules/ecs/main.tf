@@ -114,19 +114,19 @@ resource "aws_ecs_task_definition" "main" {
   network_mode            = "bridge"
   requires_compatibilities = ["EC2"]
   cpu                     = 256
-  memory                  = 512
+  memory                  = 256
   execution_role_arn      = aws_iam_role.ecs_execution_role.arn
   task_role_arn           = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
     {
-      name  = "${var.project_name}-container"
-      image = "${var.ecr_repository_url}:latest"
+      name  = "${var.app_name}-container"
+      image = var.container_image
       portMappings = [
         {
           containerPort = 3000
-          hostPort      = 3000
-          protocol      = "tcp"
+          hostPort     = 0
+          protocol     = "tcp"
         }
       ]
       environment = [
@@ -149,6 +149,10 @@ resource "aws_ecs_task_definition" "main" {
         {
           name  = "GOOGLE_CLIENT_SECRET"
           value = var.google_client_secret
+        },
+        {
+          name  = "NODE_OPTIONS"
+          value = "--max-old-space-size=192"
         }
       ]
       logConfiguration = {
@@ -168,22 +172,25 @@ resource "aws_ecs_task_definition" "main" {
 }
 
 resource "aws_ecs_service" "main" {
-  name            = "${var.project_name}-service"
+  name            = "${var.app_name}-service"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.main.arn
-  desired_count   = 1
+  desired_count   = var.desired_count
+  launch_type     = "EC2"
 
   load_balancer {
     target_group_arn = var.target_group_arn
-    container_name   = "${var.project_name}-container"
+    container_name   = "${var.app_name}-container"
     container_port   = 3000
   }
 
-  depends_on = [var.target_group_arn]
-
-  tags = {
-    Name = "${var.project_name}-service"
+  deployment_controller {
+    type = "ECS"
   }
+
+  enable_execute_command = true
+
+  depends_on = [aws_ecs_task_definition.main]
 }
 
 resource "aws_cloudwatch_log_group" "ecs" {
@@ -281,4 +288,29 @@ resource "aws_iam_role_policy" "ecs_task_role_policy" {
       }
     ]
   })
-} 
+}
+
+resource "aws_security_group" "ecs_tasks" {
+  name        = "${var.app_name}-ecs-tasks-sg"
+  description = "Security group for ECS tasks"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description     = "Allow inbound traffic from ALB"
+    from_port       = 32768
+    to_port         = 65535
+    protocol        = "tcp"
+    security_groups = [var.alb_security_group_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.app_name}-ecs-tasks-sg"
+  }
+}
