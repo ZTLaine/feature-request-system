@@ -55,29 +55,13 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Modify Dockerfile to run migration on startup if needed
-          if ! grep -q "npx prisma migrate deploy" Dockerfile; then
-            sed -i '/CMD \["node", "server.js"\]/i RUN echo "#!/bin/sh\\nnpx prisma migrate deploy\\nexec \$@" > /app/entrypoint.sh\\nRUN chmod +x /app/entrypoint.sh\\nENTRYPOINT ["/app/entrypoint.sh"]' Dockerfile
-          fi
-          
-          # Run database migrations and start the application
-          echo '#!/bin/sh' > /app/entrypoint.sh
-          echo 'echo "[$(date)] Starting container initialization..."' >> /app/entrypoint.sh
-          echo 'echo "[$(date)] Checking environment variables..."' >> /app/entrypoint.sh
-          echo 'if [ -z "$DATABASE_URL" ]; then echo "[$(date)] Error: DATABASE_URL is not set" && exit 1; fi' >> /app/entrypoint.sh
-          echo 'if [ -z "$NEXTAUTH_SECRET" ]; then echo "[$(date)] Error: NEXTAUTH_SECRET is not set" && exit 1; fi' >> /app/entrypoint.sh
-          echo 'if [ -z "$NEXTAUTH_URL" ]; then echo "[$(date)] Error: NEXTAUTH_URL is not set" && exit 1; fi' >> /app/entrypoint.sh
-          echo 'echo "[$(date)] Environment variables check passed"' >> /app/entrypoint.sh
-          echo 'echo "[$(date)] Running database migrations..."' >> /app/entrypoint.sh
-          echo 'npx prisma migrate deploy' >> /app/entrypoint.sh
-          echo 'if [ $? -ne 0 ]; then echo "[$(date)] Error: Database migration failed" && exit 1; fi' >> /app/entrypoint.sh
-          echo 'echo "[$(date)] Database migrations completed successfully"' >> /app/entrypoint.sh
-          echo 'echo "[$(date)] Starting application..."' >> /app/entrypoint.sh
-          echo 'exec node server.js "$@"' >> /app/entrypoint.sh  # Use node server.js directly
-          # Set permissions for the entrypoint script
-          chmod +x /app/entrypoint.sh
-          chown nextjs:nodejs /app/entrypoint.sh
+          # This section is commented out as the entrypoint logic is handled within the Dockerfile itself
+          # if ! grep -q "npx prisma migrate deploy" Dockerfile; then
+          #   sed -i '/CMD \["node", "server.js"\]/i RUN echo "#!/bin/sh\\nnpx prisma migrate deploy\\nexec \$@" > /app/entrypoint.sh\\nRUN chmod +x /app/entrypoint.sh\\nENTRYPOINT ["/app/entrypoint.sh"]' Dockerfile
+          # fi
           
           # Build a docker container and push it to ECR
+          # The entrypoint.sh script is created within the Dockerfile build process
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
