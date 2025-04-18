@@ -82,4 +82,4 @@ ENV PORT=3000
 
 # Set entrypoint and command
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["next", "start"]
+CMD ["node", "server.js"]
