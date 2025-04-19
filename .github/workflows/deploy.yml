@@ -145,6 +145,12 @@ jobs:
           container-name: feature-request-system-container
           image: ${{ steps.build-image.outputs.image }}
       
+      - name: Inspect Final Task Definition
+        run: |
+          echo "--- Final Task Definition ---"
+          cat ${{ steps.task-def.outputs.task-definition }}
+          echo "---------------------------"
+          
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
