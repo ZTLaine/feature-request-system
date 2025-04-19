@@ -114,7 +114,7 @@ resource "aws_ecs_task_definition" "main" {
   network_mode            = "bridge"
   requires_compatibilities = ["EC2"]
   cpu                     = 512
-  memory                  = 1024
+  memory                  = 896
   execution_role_arn      = aws_iam_role.ecs_execution_role.arn
   task_role_arn           = aws_iam_role.ecs_task_role.arn
 
@@ -152,7 +152,7 @@ resource "aws_ecs_task_definition" "main" {
         },
         {
           name  = "NODE_OPTIONS"
-          value = "--max-old-space-size=768"
+          value = "--max-old-space-size=640"
         }
       ]
       logConfiguration = {
@@ -170,7 +170,7 @@ resource "aws_ecs_task_definition" "main" {
         retries     = 3
         startPeriod = 90
       }
-      memory = 1024
+      memory = 896
       memoryReservation = 768
     }
   ])
