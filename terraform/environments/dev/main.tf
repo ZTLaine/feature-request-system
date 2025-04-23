@@ -44,6 +44,7 @@ module "ecs" {
   nextauth_url        = "https://${var.domain_name}"
   google_client_id    = var.google_client_id
   google_client_secret = var.google_client_secret
+  secret_name         = "NEXTAUTH_SECRET"
   container_image     = "${module.ecr.repository_url}:latest"
   app_name           = local.project_name
   vpc_id             = module.vpc.vpc_id

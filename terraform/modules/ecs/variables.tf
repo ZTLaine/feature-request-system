@@ -81,4 +81,10 @@ variable "private_subnets" {
 variable "alb_security_group_id" {
   description = "Security group ID of the ALB"
   type        = string
+}
+
+# Add variable for the base name of the secret in Secrets Manager
+variable "secret_name" {
+  description = "Base name of the secret stored in AWS Secrets Manager (e.g., NEXTAUTH_SECRET)"
+  type        = string
 } 

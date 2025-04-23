@@ -261,6 +261,37 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Add inline policy to allow fetching the specific NextAuth secret
+resource "aws_iam_role_policy" "ecs_execution_role_secrets_policy" {
+  name = "${var.project_name}-ecs-execution-secrets-policy"
+  role = aws_iam_role.ecs_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        # Reference the specific secret ARN using the name variable
+        # Note: Adjust if your secret name in Secrets Manager differs from var.project_name
+        Resource = [
+          "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.secret_name}-*"
+        ]
+      },
+      {
+        # If using a customer-managed KMS key for the secret, add decrypt permission
+        # Effect = "Allow"
+        # Action = [
+        #   "kms:Decrypt"
+        # ]
+        # Resource = ["arn:aws:kms:REGION:ACCOUNT_ID:key/YOUR_KMS_KEY_ID"] # Replace with your KMS key ARN
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "ecs_task_role" {
   name = "${var.project_name}-ecs-task-role"
 
@@ -298,6 +329,9 @@ resource "aws_iam_role_policy" "ecs_task_role_policy" {
     ]
   })
 }
+
+# Get current AWS account ID to build ARN correctly
+data "aws_caller_identity" "current" {}
 
 resource "aws_security_group" "ecs_tasks" {
   name        = "${var.app_name}-ecs-tasks-sg"
