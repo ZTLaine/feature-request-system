@@ -279,14 +279,6 @@ resource "aws_iam_role_policy" "ecs_execution_role_secrets_policy" {
         Resource = [
           "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.secret_name}-*"
         ]
-      },
-      {
-        # If using a customer-managed KMS key for the secret, add decrypt permission
-        # Effect = "Allow"
-        # Action = [
-        #   "kms:Decrypt"
-        # ]
-        # Resource = ["arn:aws:kms:REGION:ACCOUNT_ID:key/YOUR_KMS_KEY_ID"] # Replace with your KMS key ARN
       }
     ]
   })
