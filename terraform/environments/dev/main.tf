@@ -13,7 +13,8 @@ locals {
 module "vpc" {
   source = "../../modules/vpc"
 
-  project_name = local.project_name
+  project_name          = local.project_name
+  alb_security_group_id = module.alb.security_group_id
 }
 
 module "rds" {

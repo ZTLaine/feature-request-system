@@ -111,12 +111,23 @@ resource "aws_security_group" "ecs" {
   description = "Allow traffic for ECS"
   vpc_id      = aws_vpc.main.id
 
+  # Allow incoming traffic from the ALB on the application port (3000)
   ingress {
-    description = "Dynamic ports for ECS"
-    from_port   = 32768
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]  # VPC CIDR
+    description     = "Allow ALB traffic on port 3000"
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [var.alb_security_group_id]
+  }
+
+  # Allow incoming traffic from within the VPC for other potential needs (e.g., agent communication)
+  # This rule might need adjustment based on specific requirements, but keeps previous behavior
+  ingress {
+    description     = "Allow VPC internal traffic (e.g., agent)"
+    from_port       = 0 # Allow all ports from VPC internal
+    to_port         = 0
+    protocol        = "tcp"
+    cidr_blocks     = [aws_vpc.main.cidr_block] # Use VPC CIDR block
   }
 
   egress {
