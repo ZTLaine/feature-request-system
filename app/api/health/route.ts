@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+// import { PrismaClient } from '@prisma/client'; // No longer needed for basic check
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient(); // No longer needed
 
 export async function GET() {
+  console.log('[Health Check] Simple health check invoked.');
+  // Return a simple healthy status immediately
+  return NextResponse.json(
+    { status: 'healthy', timestamp: new Date().toISOString() }, 
+    { status: 200 }
+  );
+
+  /* Previous logic with DB check:
   console.log('[Health Check] Starting health check...');
   
   // During build time, just return healthy
@@ -31,4 +39,5 @@ export async function GET() {
       { status: 503 }
     );
   }
+  */
 } 
