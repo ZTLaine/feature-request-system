@@ -55,7 +55,7 @@ resource "aws_lb_target_group" "main" {
   target_type = "instance"
 
   health_check {
-    enabled             = true
+    enabled             = false
     healthy_threshold   = 3
     interval            = 30
     matcher            = "200"
